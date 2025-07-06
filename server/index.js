@@ -47,6 +47,7 @@ async function run() {
   const db = client.db("plantdb");
   const plantsCollection = db.collection("plants");
   const ordersCollection = db.collection("orders");
+  const usersCollection = db.collection("users");
   try {
     // Generate jwt token
     app.post("/jwt", async (req, res) => {
@@ -118,6 +119,13 @@ async function run() {
         },
       });
       res.send({ clientSecret: client_secret });
+    });
+
+    // save or update user info
+    app.post("/user", async (req, res) => {
+      const userData = req.body;
+      const result = await usersCollection.insertOne(userData);
+      res.send(result);
     });
 
     // save order data ordersCollection in db
