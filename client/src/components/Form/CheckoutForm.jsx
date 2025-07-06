@@ -1,13 +1,28 @@
 import { CardElement, useElements, useStripe } from "@stripe/react-stripe-js";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import "./checkoutForm.css";
 import { ClipLoader } from "react-spinners";
+import useAxiosSecure from "../../hooks/useAxiosSecure";
 
-const CheckoutForm = ({ selectedPrice, closeModal }) => {
+const CheckoutForm = ({ selectedPrice, closeModal, orderData }) => {
+  const axiosSecure = useAxiosSecure();
   const stripe = useStripe();
   const elements = useElements();
   const [errorCard, setErrorCard] = useState(null);
   const [processing, setProcessing] = useState(false);
+  const [clientSecret, setClientSecret] = useState("");
+
+  useEffect(() => {
+    const getClientSecret = async () => {
+      // server request
+      const { data } = await axiosSecure.post("/create-payment-intent", {
+        quantity: orderData?.quantity,
+        plantId: orderData?.plantId,
+      });
+      console.log(data);
+    };
+    getClientSecret();
+  }, [axiosSecure, orderData]);
 
   const handleSubmit = async (event) => {
     setProcessing(true);
@@ -43,6 +58,8 @@ const CheckoutForm = ({ selectedPrice, closeModal }) => {
     } else {
       console.log("[PaymentMethod]", paymentMethod);
       setErrorCard(null);
+
+      // money
     }
   };
 

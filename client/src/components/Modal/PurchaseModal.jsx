@@ -18,7 +18,7 @@ const PurchaseModal = ({ closeModal, isOpen, plant }) => {
   const [selectedPrice, setSelectedPrice] = useState(price);
   const [orderData, setOrderData] = useState({
     seller,
-    pantId: _id,
+    plantId: _id,
     quantity: 1,
     price: price,
     plantName: name,
@@ -124,6 +124,7 @@ const PurchaseModal = ({ closeModal, isOpen, plant }) => {
               <CheckoutForm
                 selectedPrice={selectedPrice}
                 closeModal={closeModal}
+                orderData={orderData}
               />
             </Elements>
           </DialogPanel>
