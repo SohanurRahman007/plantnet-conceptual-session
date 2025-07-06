@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const stripe = require("stripe")(process.env.STRIPE_SK_KEY);
 const jwt = require("jsonwebtoken");
 
 const port = process.env.PORT || 3000;
@@ -45,6 +46,7 @@ const client = new MongoClient(process.env.MONGODB_URI, {
 async function run() {
   const db = client.db("plantdb");
   const plantsCollection = db.collection("plants");
+  const ordersCollection = db.collection("orders");
   try {
     // Generate jwt token
     app.post("/jwt", async (req, res) => {
@@ -106,8 +108,23 @@ async function run() {
 
       if (!plant) return res.status(404).send({ message: "plant not fount" });
       const totalPrice = quantity * plant?.price * 100;
-      console.log(quantity, plantId);
-      res.send({ price: totalPrice, quantity });
+
+      // stripe
+      const { client_secret } = await stripe.paymentIntents.create({
+        amount: totalPrice,
+        currency: "usd",
+        automatic_payment_methods: {
+          enabled: true,
+        },
+      });
+      res.send({ clientSecret: client_secret });
+    });
+
+    // save order data ordersCollection in db
+    app.post("/order", async (req, res) => {
+      const orderData = req.body;
+      const result = await ordersCollection.insertOne(orderData);
+      res.send(result);
     });
 
     // Send a ping to confirm a successful connection

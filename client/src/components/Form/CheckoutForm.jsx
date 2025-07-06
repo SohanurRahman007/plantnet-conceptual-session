@@ -3,8 +3,11 @@ import React, { useEffect, useState } from "react";
 import "./checkoutForm.css";
 import { ClipLoader } from "react-spinners";
 import useAxiosSecure from "../../hooks/useAxiosSecure";
+import useAuth from "../../hooks/useAuth";
+import toast from "react-hot-toast";
 
 const CheckoutForm = ({ selectedPrice, closeModal, orderData }) => {
+  const { user } = useAuth();
   const axiosSecure = useAxiosSecure();
   const stripe = useStripe();
   const elements = useElements();
@@ -19,7 +22,7 @@ const CheckoutForm = ({ selectedPrice, closeModal, orderData }) => {
         quantity: orderData?.quantity,
         plantId: orderData?.plantId,
       });
-      console.log(data);
+      setClientSecret(data.clientSecret);
     };
     getClientSecret();
   }, [axiosSecure, orderData]);
@@ -60,6 +63,39 @@ const CheckoutForm = ({ selectedPrice, closeModal, orderData }) => {
       setErrorCard(null);
 
       // money
+      const result = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: {
+          card,
+          billing_details: {
+            name: user?.displayName,
+            email: user?.email,
+          },
+        },
+      });
+
+      if (result?.error) {
+        setErrorCard(result?.error?.message);
+        return;
+      }
+      if (result?.paymentIntent?.status === "succeeded") {
+        // save order data in db
+        orderData.transactionId = result?.paymentIntent?.id;
+        try {
+          const { data } = await axiosSecure.post("/order", orderData);
+          if (data?.insertedId) {
+            toast.success("order Placed Successfully");
+          }
+        } catch (err) {
+          console.log(err);
+        } finally {
+          setProcessing(false);
+          setErrorCard(null);
+          closeModal();
+        }
+
+        // update product quantity plant from planCollection
+      }
+      console.log(result);
     }
   };
 
