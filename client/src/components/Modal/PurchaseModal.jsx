@@ -1,15 +1,40 @@
 import { Dialog, DialogPanel, DialogTitle } from "@headlessui/react";
 import useAuth from "../../hooks/useAuth";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
 const PurchaseModal = ({ closeModal, isOpen, plant }) => {
   const { user } = useAuth();
-  const { name, category, quantity, price } = plant || {};
+  const { name, category, quantity, price, seller, _id } = plant || {};
 
   const [selectedQuantity, setSelectedQuantity] = useState(1);
   const [selectedPrice, setSelectedPrice] = useState(price);
+  const [orderData, setOrderData] = useState({
+    seller,
+    pantId: _id,
+    quantity: 1,
+    price: price,
+    plantName: name,
+    plantCategory: category,
+    plantImage: Image,
+  });
 
+  useEffect(() => {
+    if (user) {
+      setOrderData((prev) => {
+        return {
+          ...prev,
+          customer: {
+            name: user?.displayName,
+            email: user?.email,
+            photo: user?.photoURL,
+          },
+        };
+      });
+    }
+  }, [user]);
+
+  // quantity and price handle
   const handleQuantity = (value) => {
     const totalQuantity = parseInt(value);
     if (totalQuantity > quantity)
@@ -17,6 +42,14 @@ const PurchaseModal = ({ closeModal, isOpen, plant }) => {
     const calculatePrice = totalQuantity * price;
     setSelectedPrice(calculatePrice);
     setSelectedQuantity(totalQuantity);
+
+    setOrderData((prev) => {
+      return { ...prev, price: calculatePrice, quantity: totalQuantity };
+    });
+  };
+
+  const handleOrderBtn = () => {
+    console.log(orderData);
   };
 
   return (
@@ -46,7 +79,7 @@ const PurchaseModal = ({ closeModal, isOpen, plant }) => {
             </div>
             <div className="mt-2">
               <p className="text-sm text-gray-500">
-                Customer: {user.displayName}
+                Customer: {user?.displayName}
               </p>
             </div>
 
@@ -82,6 +115,10 @@ const PurchaseModal = ({ closeModal, isOpen, plant }) => {
                 Total Price: {selectedPrice}
               </p>
             </div>
+
+            <button onClick={handleOrderBtn} className="btn">
+              Order Now
+            </button>
           </DialogPanel>
         </div>
       </div>
