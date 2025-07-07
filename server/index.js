@@ -125,11 +125,30 @@ async function run() {
     app.post("/user", async (req, res) => {
       const userData = req.body;
       userData.role = "customer";
-      userData.create_at = Date.now();
-      userData.last_loggedIn = Date.now();
+      userData.create_at = new Date().toLocaleString();
+      userData.last_loggedIn = new Date().toLocaleString();
       // return console.log(userData);
+
+      const query = { email: userData?.email };
+
+      const alreadyExist = await usersCollection.findOne(query);
+      if (alreadyExist) {
+        const result = await usersCollection.updateOne(query, {
+          $set: { last_loggedIn: new Date().toLocaleString() },
+        });
+        return res.send(result);
+      }
+      console.log("user exist", !!alreadyExist);
       const result = await usersCollection.insertOne(userData);
       res.send(result);
+    });
+
+    // get a user's role
+    app.get("/user/role/:email", async (req, res) => {
+      const email = req?.params?.email;
+      const result = await usersCollection.findOne({ email });
+      if (!result) res.status(404).send({ message: "user not fount..." });
+      res.send({ role: result?.role });
     });
 
     // save order data ordersCollection in db
