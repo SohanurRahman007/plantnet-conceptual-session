@@ -184,9 +184,11 @@ async function run() {
       res.send(result);
     });
 
+    // update user role
     app.patch("/user/role/update/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
       const { role } = req.body;
+      console.log(role);
       const filter = { email: email };
       const updateDoc = {
         $set: {
@@ -195,7 +197,81 @@ async function run() {
         },
       };
       const result = await usersCollection.updateOne(filter, updateDoc);
+      console.log(result);
       res.send(result);
+    });
+
+    // request be-come a seller
+    app.patch(
+      "/become-seller-request/:email",
+      verifyToken,
+      async (req, res) => {
+        const email = req.params.email;
+
+        const filter = { email: email };
+        const updateDoc = {
+          $set: {
+            status: "requested",
+          },
+        };
+        const result = await usersCollection.updateOne(filter, updateDoc);
+        console.log(result);
+        res.send(result);
+      }
+    );
+
+    app.get("/admin-stats", async (req, res) => {
+      const totalUser = await usersCollection.estimatedDocumentCount();
+      const totalPlant = await plantsCollection.estimatedDocumentCount();
+
+      // Get overall total orders and revenue
+      const allOrders = await ordersCollection.find().toArray();
+      const totalOrder = allOrders.length;
+      const totalRevenue = allOrders.reduce(
+        (sum, order) => sum + (order.price || 0),
+        0
+      );
+
+      // Get daily grouped orders and revenue
+      const result = await ordersCollection
+        .aggregate([
+          {
+            $addFields: {
+              createAt: { $toDate: "$_id" },
+            },
+          },
+          {
+            $group: {
+              _id: {
+                $dateToString: {
+                  format: "%Y-%m-%d",
+                  date: "$createAt",
+                },
+              },
+              dailyOrder: { $sum: 1 },
+              dailyRevenue: { $sum: "$price" },
+            },
+          },
+          {
+            $sort: { _id: 1 },
+          },
+        ])
+        .toArray();
+
+      // Format bar chart data
+      const barChartData = result.map((item) => ({
+        date: item._id,
+        dailyOrder: item.dailyOrder,
+        dailyRevenue: item.dailyRevenue,
+      }));
+
+      res.send({
+        totalUser,
+        totalPlant,
+        totalOrder,
+        totalRevenue,
+        barChartData,
+      });
     });
 
     // Send a ping to confirm a successful connection

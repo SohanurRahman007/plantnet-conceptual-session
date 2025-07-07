@@ -1,13 +1,45 @@
 import { Button, Dialog, DialogPanel, DialogTitle } from "@headlessui/react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import useAxiosSecure from "../../hooks/useAxiosSecure";
+import toast from "react-hot-toast";
 
-const UpdateUserRoleModal = ({ isOpen, setIsOpen, role }) => {
+const UpdateUserRoleModal = ({ isOpen, setIsOpen, role, userEmail }) => {
+  const axiosSecure = useAxiosSecure();
+  const queryClient = useQueryClient();
   const [updateRole, setUpdateRole] = useState(role);
   console.log(updateRole);
 
   function close() {
     setIsOpen(false);
   }
+
+  // get data = userQuery
+  // update/add/delete = useMutation
+
+  const mutation = useMutation({
+    mutationFn: async (role) => {
+      const { data } = await axiosSecure.patch(
+        `/user/role/update/${userEmail}`,
+        { role }
+      );
+      return data;
+    },
+    onSuccess: (data) => {
+      console.log(data);
+      toast.success(" Role update successful");
+      setIsOpen(false);
+      queryClient.invalidateQueries(["users"]);
+    },
+    onError: (error) => {
+      console.log(error);
+    },
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    mutation.mutate(updateRole);
+  };
 
   return (
     <>
@@ -29,7 +61,7 @@ const UpdateUserRoleModal = ({ isOpen, setIsOpen, role }) => {
               >
                 Update User Role
               </DialogTitle>
-              <form>
+              <form onSubmit={handleSubmit}>
                 <div>
                   <select
                     value={updateRole}
