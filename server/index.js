@@ -124,6 +124,10 @@ async function run() {
     // save or update user info
     app.post("/user", async (req, res) => {
       const userData = req.body;
+      userData.role = "customer";
+      userData.create_at = Date.now();
+      userData.last_loggedIn = Date.now();
+      // return console.log(userData);
       const result = await usersCollection.insertOne(userData);
       res.send(result);
     });
