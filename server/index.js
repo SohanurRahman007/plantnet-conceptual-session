@@ -172,6 +172,32 @@ async function run() {
       res.send(result);
     });
 
+    // get all user or admin
+    app.get("/all-users", verifyToken, async (req, res) => {
+      console.log(req.user);
+      const filer = {
+        email: {
+          $ne: req?.user?.email,
+        },
+      };
+      const result = await usersCollection.find(filer).toArray();
+      res.send(result);
+    });
+
+    app.patch("/user/role/update/:email", verifyToken, async (req, res) => {
+      const email = req.params.email;
+      const { role } = req.body;
+      const filter = { email: email };
+      const updateDoc = {
+        $set: {
+          role,
+          status: "verified",
+        },
+      };
+      const result = await usersCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
